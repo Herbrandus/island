@@ -47,7 +47,7 @@ function typescript() {
 			'message': err.message
 		});
 	})
-	.plugin(tsify, { "noImplicitAny": true, "target": "es5" })
+	.plugin(tsify, { "target": "es5" })
 	.bundle()
 	.pipe(source('bundle.min.js'))
 	.pipe(buffer())
