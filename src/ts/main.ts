@@ -4,7 +4,8 @@ import { Config } from './config.component';
 
 class Island {
 	
-	private _perlin: Perlin = new Perlin();
+	// new Perlin(frequency?: number, lacunarity?: number, octaves?: number, persistence?: number, seed?: number, quality?: Quality)
+	private _perlin: Perlin = new Perlin(2, 3);
 	private _re: RenderElements = new RenderElements();
 	private _config: Config = new Config();
 	private _width: number;
@@ -13,7 +14,7 @@ class Island {
 	private _tileLength: number = 20;
 	private _containerPixelWidth: number;
 	private _containerPixelHeight: number;
-	private _map: MapTile[] = [];
+	private _map: any[] = [];
 	private _htmlMap: string = '';
 
 
@@ -25,10 +26,10 @@ class Island {
 
 		for (let y = 0; y < l; y++) {
 
-			this._map[y] = [];
+			this._map[y] = [] as MapTile[];
 
 			for (let x = 0; x < w; x++) {
-				const noiseVal = Math.abs(this._perlin.getValue(x / 10, y / 10, 0));
+				const noiseVal = Math.abs(this._perlin.getValue(x / 25, y / 25, 0));
 				
 				const tile: MapTile = {
 					id,
@@ -55,7 +56,7 @@ class Island {
 		}
 	}
 
-	getMap(): object[] {
+	getMap(): any[] {
 		return this._map;
 	}
 
