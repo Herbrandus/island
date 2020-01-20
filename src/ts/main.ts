@@ -5,17 +5,16 @@ import { Config } from './config.component';
 class Island {
 	
 	// new Perlin(frequency?: number, lacunarity?: number, octaves?: number, persistence?: number, seed?: number, quality?: Quality)
-	private _perlin: Perlin = new Perlin(2, 3);
 	private _re: RenderElements = new RenderElements();
 	private _config: Config = new Config();
+	private _perlin: Perlin = new Perlin(2, 3, 1);
 	private _width: number;
 	private _length: number;
-	private _tileWidth: number = 20;
-	private _tileLength: number = 20;
 	private _containerPixelWidth: number;
 	private _containerPixelHeight: number;
 	private _map: any[] = [];
 	private _htmlMap: string = '';
+	private _edge: number = 4;
 
 
 	constructor(private w: number, private l: number) {
@@ -24,18 +23,73 @@ class Island {
 		this._width = w;
 		this._length = l;
 
+		const highestPointX = (this._edge*2) + Math.floor(Math.random() * (w - (this._edge*4)));
+		const highestPointY = (this._edge*2) + Math.floor(Math.random() * (l - (this._edge*4)));
+
+		const westDiff = highestPointX - 1;
+		const eastDiff = (w - highestPointX);
+
+		const northDiff = highestPointY - 1;
+		const southDiff = (l - highestPointY);
+
+		const islandSize = 45 + (Math.floor(Math.random()*5)*10);
+
 		for (let y = 0; y < l; y++) {
 
 			this._map[y] = [] as MapTile[];
 
 			for (let x = 0; x < w; x++) {
-				const noiseVal = Math.abs(this._perlin.getValue(x / 25, y / 25, 0));
+				//const noiseVal = Math.abs(this._perlin.getValue(x / 25, y / 25, 0));
 				
+				// let noiseVal = (-0.15 * Math.pow(x, 2) + 53) / 40;
+				// noiseVal = noiseVal < 0 ? 0 : noiseVal;
+
+				let yChance = 50;
+				let xChance = 50;
+
+				// functions to calculate chance for higher elevation the closer to the highest point
+				if (y < highestPointY) {
+					yChance = Math.floor(((y/northDiff)/2)*100);
+					// console.log('north ('+y+'): '+yChance);
+				} else if (y > highestPointY) {
+					yChance = Math.floor((((l - y)/southDiff)/2)*100);
+					// console.log('south ('+y+'): '+yChance);
+				}
+
+				// functions to calculate chance for higher elevation the closer to the highest point
+				if (x < highestPointX) {
+					xChance = Math.floor(((x/westDiff)/2)*100);
+					// console.log('west ('+x+'): '+xChance);
+				} else if (x > highestPointX) {
+					xChance = Math.floor((((w - x)/eastDiff)/2)*100);
+					// console.log('east ('+x+'): '+xChance);
+				}
+
+				// add chance together
+				let chance = yChance + xChance;
+				let elevation = 0;
+
+				if (chance > 88) {
+					chance = 100;
+				}
+
+				if (islandSize < chance) {
+					// noise
+					const noiseVal = Math.abs(this._perlin.getValue(x / 25, y / 25, 0));
+
+					elevation = Math.floor((chance) * (noiseVal * (chance / 200))); // 10 + (noiseVal*10);
+					if (elevation <= 0) {
+						elevation = 0;
+					}
+				} else {
+					elevation = 0;
+				}
+
 				const tile: MapTile = {
 					id,
 					x,
 					y,
-					height: Math.floor(noiseVal * 10)
+					height: elevation
 				}
 
 				this._map[y][x] = tile;
@@ -47,8 +101,8 @@ class Island {
 		return {
 			width: this._width,
 			length: this._length,
-			tileWidth: this._tileWidth,
-			tileLength: this._tileLength,
+			tileWidth: this._config.tileWidth,
+			tileLength: this._config.tileLength,
 			container: {
 				width: this._containerPixelWidth,
 				height: this._containerPixelHeight
@@ -108,7 +162,8 @@ class Island {
 					thisPosX = (lastTile.coords.right.x - (lastTile.coords.right.x - lastTile.coords.bottom.x))
 				}
 
-				let newTile = this._re.createTile(thisPosX, thisPosY, mapTile.height * 4);
+				// let newTile = this._re.createTile(thisPosX, thisPosY, mapTile.height);
+				const newTile = this._re.createPolygon({ map: this._map, x, y }, thisPosX, thisPosY, mapTile.height);
 
 				this._htmlMap += newTile.html;
 
@@ -160,7 +215,7 @@ interface MapInfo {
 	}
 }
 
-const map = new Island(40, 35);
+const map = new Island(6, 6);
 let mapInfo = map.getMapInfo();
 const el = document.querySelector('#island');
 
