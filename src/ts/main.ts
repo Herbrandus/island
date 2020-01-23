@@ -1,6 +1,7 @@
 import { Perlin } from "libnoise-ts/module/generator";
 import { RenderElements } from './renderelements.component';
-import { Config } from './config.component';
+import { MapGenerationFunctions } from './mapGenerationFunctions.component'
+import { Config, Position } from './config.component';
 
 class Island {
 	
@@ -8,6 +9,8 @@ class Island {
 	private _re: RenderElements = new RenderElements();
 	private _config: Config = new Config();
 	private _perlin: Perlin = new Perlin(2, 3, 1);
+	private calculations: MapGenerationFunctions = new MapGenerationFunctions()
+	private dimensions = this.calculations.calculateStraightLinesFromIsometricSquare(this._config.tileWidth, this._config.tileLength)
 	private _width: number;
 	private _length: number;
 	private _containerPixelWidth: number;
@@ -77,7 +80,7 @@ class Island {
 					// noise
 					const noiseVal = Math.abs(this._perlin.getValue(x / 25, y / 25, 0));
 
-					elevation = Math.floor((chance) * (noiseVal * (chance / 200))); // 10 + (noiseVal*10);
+					elevation = Math.floor((chance) * (noiseVal * (chance / 300))); // 10 + (noiseVal*10);
 					if (elevation <= 0) {
 						elevation = 0;
 					}
@@ -95,6 +98,60 @@ class Island {
 				this._map[y][x] = tile;
 			}
 		}
+
+		const incr = 25;
+
+
+		// this._map = [
+		// 	[
+		// 		{ id: 0, x: 0, y: 0, height: 0 },
+		// 		{ id: 0, x: 1, y: 0, height: 0 },
+		// 		{ id: 0, x: 2, y: 0, height: 0 },
+		// 		{ id: 0, x: 3, y: 0, height: 0 },
+		// 		{ id: 0, x: 4, y: 0, height: 0 },
+		// 		{ id: 0, x: 5, y: 0, height: 0 }
+		// 	],
+		// 	[
+		// 		{ id: 0, x: 0, y: 1, height: 0 },
+		// 		{ id: 0, x: 1, y: 1, height: incr },
+		// 		{ id: 0, x: 2, y: 1, height: incr },
+		// 		{ id: 0, x: 3, y: 1, height: incr },
+		// 		{ id: 0, x: 4, y: 1, height: incr },
+		// 		{ id: 0, x: 5, y: 1, height: 0 }
+		// 	],
+		// 	[
+		// 		{ id: 0, x: 0, y: 2, height: 0 },
+		// 		{ id: 0, x: 1, y: 2, height: incr },
+		// 		{ id: 0, x: 2, y: 2, height: incr * 2 },
+		// 		{ id: 0, x: 3, y: 2, height: incr * 2 },
+		// 		{ id: 0, x: 4, y: 2, height: incr },
+		// 		{ id: 0, x: 5, y: 2, height: 0 }
+		// 	],
+		// 	[
+		// 		{ id: 0, x: 0, y: 3, height: 0 },
+		// 		{ id: 0, x: 1, y: 3, height: incr },
+		// 		{ id: 0, x: 2, y: 3, height: incr * 2 },
+		// 		{ id: 0, x: 3, y: 3, height: incr * 2 },
+		// 		{ id: 0, x: 4, y: 3, height: incr },
+		// 		{ id: 0, x: 5, y: 3, height: 0 }
+		// 	],
+		// 	[
+		// 		{ id: 0, x: 0, y: 4, height: 0 },
+		// 		{ id: 0, x: 1, y: 4, height: incr },
+		// 		{ id: 0, x: 2, y: 4, height: incr },
+		// 		{ id: 0, x: 3, y: 4, height: incr },
+		// 		{ id: 0, x: 4, y: 4, height: incr },
+		// 		{ id: 0, x: 5, y: 4, height: 0 }
+		// 	],
+		// 	[
+		// 		{ id: 0, x: 0, y: 5, height: 0 },
+		// 		{ id: 0, x: 1, y: 5, height: 0 },
+		// 		{ id: 0, x: 2, y: 5, height: 0 },
+		// 		{ id: 0, x: 3, y: 5, height: 0 },
+		// 		{ id: 0, x: 4, y: 5, height: 0 },
+		// 		{ id: 0, x: 5, y: 5, height: 0 }
+		// 	]
+		// ]
 	}
 
 	getMapInfo(): MapInfo {
@@ -143,8 +200,6 @@ class Island {
 				let thisPosX = 0
 				let mapTile: MapTile = this._map[y][x];
 
-				console.log(mapTile);
-
 				if (x === 0 && y === 0) {
 					thisPosX = startTileX
 				}
@@ -161,12 +216,14 @@ class Island {
 				if (x > 0) {
 					thisPosX = (lastTile.coords.right.x - (lastTile.coords.right.x - lastTile.coords.bottom.x))
 				}
-
-				// let newTile = this._re.createTile(thisPosX, thisPosY, mapTile.height);
-				const newTile = this._re.createPolygon({ map: this._map, x, y }, thisPosX, thisPosY, mapTile.height);
-
-				this._htmlMap += newTile.html;
-
+				
+				const point: Position = { "x": (thisPosX + this.dimensions.horizontalWidthFromBottom), "y": (thisPosY + this.dimensions.totalHeight - mapTile.height) }
+				const top: Position = { "x": (thisPosX + this.dimensions.horizontalWidthFromTop), "y": thisPosY}
+				const left: Position = { "x": thisPosX, "y": (thisPosY + this.dimensions.verticalHeightFromTop) }
+				const bottom: Position = { "x": (thisPosX + this.dimensions.horizontalWidthFromBottom), "y": (thisPosY + this.dimensions.totalHeight) }
+				const right: Position = { "x": (thisPosX + this.dimensions.totalWidth), "y": (thisPosY + this.dimensions.verticalHeightFromBottom) }
+				const newTile = this._re.createTile(thisPosX, thisPosY, mapTile.height);
+				
 				if (y === 0 && x === this._width - 1) {
 					this.setContainerSize({ width: newTile.coords.right.x, height: 0 });
 				}
@@ -175,7 +232,42 @@ class Island {
 					this.setContainerSize({ width: 0, height: newTile.coords.bottom.y });	
 				}
 
+				const centerX = ((thisPosX + this.dimensions.horizontalWidthFromTop) + (thisPosX + this.dimensions.horizontalWidthFromBottom)) / 2;
+				const centerY = ((thisPosY + this.dimensions.verticalHeightFromTop) + (thisPosY + this.dimensions.verticalHeightFromBottom)) / 2;
+
+				this._map[y][x].tileCoords = {
+					point,
+					center: { x: centerX, y: centerY }
+				}
+
 				lastTile = newTile
+			}
+		}
+
+		for (let y = 0; y < this._length; y++) {
+			for (let x = 0; x < this._width; x++) {
+
+				let point = { x: this._map[y][x].tileCoords.point.x, y: this._map[y][x].tileCoords.point.y }
+				
+				let top = `${this._map[y][x].tileCoords.point.x} ${this._map[y][x].tileCoords.point.y}`;
+				let left = `0 0`;
+				let bottom = `0 0`;
+				let right = `0 0`;
+				let center = `0 0`;
+
+				if (y < this._map.length - 1 && x < this._map[0].length - 1) {
+					left = `${this._map[y + 1][x].tileCoords.point.x} ${this._map[y + 1][x].tileCoords.point.y}`
+					bottom = `${this._map[y + 1][x + 1].tileCoords.point.x} ${this._map[y + 1][x + 1].tileCoords.point.y}`
+					right = `${this._map[y][x + 1].tileCoords.point.x} ${this._map[y][x + 1].tileCoords.point.y}`
+					center = `${this._map[y][x].tileCoords.x} ${this._map[y][x].tileCoords.y}`;
+				}
+
+				this._htmlMap += `<path fill="rgb(122, 132, 179)"
+					d="M${top}
+					L${left}
+					L${bottom}
+					L${right}
+					L${top} Z" />`
 			}
 		}
 
@@ -196,7 +288,10 @@ interface MapTile {
 	id: number,
 	x: number,
 	y: number,
-	height: number
+	height: number,
+	tileCoords?: {
+		point: number
+	}
 }
 
 interface Size2D {
@@ -215,16 +310,12 @@ interface MapInfo {
 	}
 }
 
-const map = new Island(6, 6);
+const map = new Island(26, 26);
 let mapInfo = map.getMapInfo();
 const el = document.querySelector('#island');
 
-console.log(map.getMap());
-
 const width = mapInfo.width * mapInfo.tileWidth;
 const length = mapInfo.length * mapInfo.tileLength;
-
-console.log(width, length);
 
 map.buildMap(el);
 mapInfo = map.getMapInfo();

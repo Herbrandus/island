@@ -191,13 +191,81 @@ export class RenderElements {
 						stroke-width="1"
 						stroke-linecap="round"
 						fill="rgb(172, 162, 219)"
-					d="M${polygons[i][0].x} ${polygons[i][0].y-height}
-					L${polygons[i][1].x} ${polygons[i][1].y-height}
-					L${polygons[i][2].x} ${polygons[i][2].y-height}
-					L${polygons[i][0].x} ${polygons[i][0].y-height} Z" />`
+					d="M${polygons[i][0].x} ${polygons[i][0].y}
+					L${polygons[i][1].x} ${polygons[i][1].y}
+					L${polygons[i][2].x} ${polygons[i][2].y}
+					L${polygons[i][0].x} ${polygons[i][0].y} Z" />`
 		}
 
 		let coords: Coords = { "top": topPoint, "left": leftPoint, "bottom": bottomPoint, "right": rightPoint };
+
+		return { html: html, coords: coords }
+	}
+
+
+	createPolygon2(mapInfo: MapInfo, xPos: number, yPos: number, height?: number, color?: string) {
+		
+		let top: Position = { "x": (xPos + this.dimensions.horizontalWidthFromTop), "y": yPos}
+		let left: Position = { "x": xPos, "y": (yPos + this.dimensions.verticalHeightFromTop) }
+		let bottom: Position = { "x": (xPos + this.dimensions.horizontalWidthFromBottom), "y": (yPos + this.dimensions.totalHeight) }
+		let right: Position = { "x": (xPos + this.dimensions.totalWidth), "y": (yPos + this.dimensions.verticalHeightFromBottom) }
+
+		let addedToCornerTop = false;
+		let addedToCornerLeft = false;
+		let addedToCornerBottom = false;
+		let addedToCornerRight = false;
+
+		let topY = top.y - this.bleed - height;
+		if (mapInfo.y > 0 && mapInfo.x > 0) {
+			topY = top.y - this.bleed - mapInfo.map[mapInfo.y - 1][mapInfo.x - 1].height;
+			if (mapInfo.map[mapInfo.y - 1][mapInfo.x - 1].height !== height) {
+				addedToCornerTop = true;	
+			}			
+		}
+
+		let leftY = left.y - height;
+		if (mapInfo.y < mapInfo.map.length-1 && mapInfo.x > 0) {
+			leftY = left.y - mapInfo.map[mapInfo.y + 1][mapInfo.x - 1].height;
+			if (mapInfo.map[mapInfo.y + 1][mapInfo.x - 1].height !== height) {
+				addedToCornerLeft = true;
+			}
+		}
+
+		let bottomY = bottom.y + this.bleed - height;
+		if (mapInfo.y < mapInfo.map.length-1 && mapInfo.x < mapInfo.map[0].length-1) {
+			bottomY = bottom.y + this.bleed - mapInfo.map[mapInfo.y + 1][mapInfo.x + 1].height;
+			if (mapInfo.map[mapInfo.y + 1][mapInfo.x + 1].height !== height) {
+				addedToCornerBottom = true;
+			}
+		}
+
+		let rightY = right.y - height;
+		if (mapInfo.y > 0 && mapInfo.x < mapInfo.map[0].length-1) {
+			rightY = right.y - mapInfo.map[mapInfo.y - 1][mapInfo.x + 1].height;
+			if (mapInfo.map[mapInfo.y - 1][mapInfo.x + 1].height !== height) {
+				addedToCornerRight = true;
+			}			
+		}
+
+		let pointTop = `${top.x} ${topY}`
+		let pointLeft = `${left.x-this.bleed} ${leftY}`
+		let pointBottom = `${bottom.x} ${bottomY}`
+		let pointRight = `${right.x+this.bleed} ${rightY}`
+
+		let tileColor = this.tileColor.hex()
+
+		var html = `<path data-height="${height}" fill="${tileColor}"
+					data-top="${addedToCornerTop}"
+					data-left="${addedToCornerLeft}"
+					data-bottom="${addedToCornerBottom}"
+					data-right="${addedToCornerRight}"
+					d="M${pointLeft} 
+					L${pointBottom} 
+					L${pointRight} 
+					L${pointTop} 
+					L${pointLeft} Z" />`
+
+		let coords: Coords = { "top": top, "left": left, "bottom": bottom, "right": right }
 
 		return { html: html, coords: coords }
 	}
