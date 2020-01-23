@@ -16,9 +16,12 @@ class Island {
 	private _containerPixelWidth: number;
 	private _containerPixelHeight: number;
 	private _map: any[] = [];
+	private _triangles: object[] = [];
 	private _htmlMap: string = '';
 	private _edge: number = 4;
-
+	private _coloring: boolean = false;
+	private _defaultColor: string = 'rgb(74, 150, 115)';
+	private _tileBorders: boolean = true;
 
 	constructor(private w: number, private l: number) {
 
@@ -96,6 +99,8 @@ class Island {
 				}
 
 				this._map[y][x] = tile;
+
+				id++;
 			}
 		}
 
@@ -232,46 +237,212 @@ class Island {
 					this.setContainerSize({ width: 0, height: newTile.coords.bottom.y });	
 				}
 
-				const centerX = ((thisPosX + this.dimensions.horizontalWidthFromTop) + (thisPosX + this.dimensions.horizontalWidthFromBottom)) / 2;
-				const centerY = ((thisPosY + this.dimensions.verticalHeightFromTop) + (thisPosY + this.dimensions.verticalHeightFromBottom)) / 2;
+				let yDiff = 0
+				if (y < this._length && x < this._width) {
+					yDiff = bottom.y - top.y
+				}
+
+				const centerX = (top.x + bottom.x) / 2;
+				const centerY = (left.y + right.y) / 2 + yDiff;
+				let heightDiff = mapTile.height
+				let xDiff = 0
+
+				if (y > 0 && x > 0 && y < this._length - 1 && x < this._width - 1) {
+					heightDiff = 
+						(this._map[y+1][x].height + this._map[y][x+1].height + this._map[y+1][x+1].height) / 3
+				}
 
 				this._map[y][x].tileCoords = {
 					point,
-					center: { x: centerX, y: centerY }
+					center: { x: centerX, y: centerY - heightDiff }
 				}
 
 				lastTile = newTile
 			}
 		}
 
+		const bleed = 0.15;
+		let trId = 0;
+
 		for (let y = 0; y < this._length; y++) {
 			for (let x = 0; x < this._width; x++) {
 
-				let point = { x: this._map[y][x].tileCoords.point.x, y: this._map[y][x].tileCoords.point.y }
+				const point = { x: this._map[y][x].tileCoords.point.x, y: this._map[y][x].tileCoords.point.y - bleed }
+				let center = { x: this._map[y][x].tileCoords.center.x, y: this._map[y][x].tileCoords.center.y }
 				
+				let leftPoint = { x: 0, y: 0 };
+				let bottomPoint = { x: 0, y: 0 };
+				let rightPoint = { x: 0, y: 0 };
+
 				let top = `${this._map[y][x].tileCoords.point.x} ${this._map[y][x].tileCoords.point.y}`;
 				let left = `0 0`;
 				let bottom = `0 0`;
 				let right = `0 0`;
-				let center = `0 0`;
 
-				if (y < this._map.length - 1 && x < this._map[0].length - 1) {
-					left = `${this._map[y + 1][x].tileCoords.point.x} ${this._map[y + 1][x].tileCoords.point.y}`
-					bottom = `${this._map[y + 1][x + 1].tileCoords.point.x} ${this._map[y + 1][x + 1].tileCoords.point.y}`
-					right = `${this._map[y][x + 1].tileCoords.point.x} ${this._map[y][x + 1].tileCoords.point.y}`
-					center = `${this._map[y][x].tileCoords.x} ${this._map[y][x].tileCoords.y}`;
+				let topLeftTriangleColor = this._defaultColor;
+				let bottomLeftTriangleColor = this._defaultColor;
+				let bottomRightTriangleColor = this._defaultColor;
+				let topRightTriangleColor = this._defaultColor;
+
+				let leftHeightDiff = 0;
+				let bottomHeightDiff = 0;
+				let rightHeightDiff = 0;				
+
+				if (x > 0 && y > 0 && y < this._map.length - 1 && x < this._map[0].length - 1) {
+
+					leftPoint = { x: this._map[y + 1][x].tileCoords.point.x - bleed, y: this._map[y + 1][x].tileCoords.point.y + bleed };
+					leftHeightDiff = Math.abs(this._map[y + 1][x].height - this._map[y][x].height);
+					bottomPoint = { x: this._map[y + 1][x + 1].tileCoords.point.x, y: this._map[y + 1][x + 1].tileCoords.point.y + bleed };
+					bottomHeightDiff = Math.abs(this._map[y + 1][x + 1].height - this._map[y][x].height);
+					rightPoint = { x: this._map[y][x + 1].tileCoords.point.x + bleed, y: this._map[y][x + 1].tileCoords.point.y + bleed };
+					rightHeightDiff = Math.abs(this._map[y][x + 1].height - this._map[y][x].height);
+
+					left = `${leftPoint.x} ${leftPoint.y}`
+					bottom = `${bottomPoint.x} ${bottomPoint.y}`
+					right = `${rightPoint.x} ${rightPoint.y}`
+					const bottomLeft = `${bottomPoint.x + bleed} ${bottomPoint.y}`
+					const bottomRight = `${bottomPoint.x - bleed} ${bottomPoint.y}`
+					// center = `${this._map[y][x].tileCoords.x} ${this._map[y][x].tileCoords.y}`;
+
+					center = { x: (point.x + bottomPoint.x) / 2, y: (leftPoint.y + rightPoint.y) / 2 }
+
+					// look left
+					const leftIsElevated = this._map[y][x].height < this._map[y][x - 1].height ? true : false;
+					// look bottom
+					const bottomIsElevated = this._map[y][x].height < this._map[y + 1][x].height ? true : false;
+					// look right
+					const rightIsElevated = this._map[y][x].height < this._map[y][x + 1].height ? true : false;
+					// look top
+					const topIsElevated = this._map[y][x].height < this._map[y - 1][x].height ? true : false;
+
+					if (this._coloring) {
+
+						topLeftTriangleColor = `rgb(61, 122, 213)`;
+						bottomLeftTriangleColor = `rgb(61, 122, 213)`;
+						bottomRightTriangleColor = `rgb(61, 122, 213)`;
+						topRightTriangleColor = `rgb(61, 122, 213)`;
+
+						if (leftIsElevated || this._map[y][x].height > 0) {
+							topLeftTriangleColor = `rgb(89, 161, 42)`;
+							if (this._map[y][x].height === 0) {
+								topLeftTriangleColor = `rgb(245, 231, 60)`;
+							}
+						}
+
+						if (bottomIsElevated || this._map[y][x].height > 0) {
+							bottomLeftTriangleColor = `rgb(89, 161, 42)`;
+							if (this._map[y][x].height === 0) {
+								bottomLeftTriangleColor = `rgb(245, 231, 60)`;
+							}
+						}
+
+						if (rightIsElevated || this._map[y][x].height > 0) {
+							bottomRightTriangleColor = `rgb(89, 161, 42)`;
+							if (this._map[y][x].height === 0) {
+								bottomRightTriangleColor = `rgb(245, 231, 60)`;
+							}
+						}
+
+						if (topIsElevated || this._map[y][x].height > 0) {
+							topRightTriangleColor = `rgb(89, 161, 42)`;
+							if (this._map[y][x].height === 0) {
+								topRightTriangleColor = `rgb(245, 231, 60)`;
+							}
+						}
+					}
+
+					// add top left triangle
+					this._triangles.push({
+						element: trId,
+						location: TriangleLocation.topLeft,
+						points: [
+							point,
+							leftPoint,
+							center
+						],
+						height: (this._map[y][x - 1].height + this._map[y][x].height) / 2
+					});
+					trId++;
+
+					// add bottom left triangle
+					this._triangles.push({
+						element: trId,
+						location: TriangleLocation.bottomLeft,
+						points: [
+							leftPoint,
+							bottomLeft,
+							center
+						],
+						height: (this._map[y + 1][x].height + this._map[y][x].height) / 2
+					});
+					trId++;
+
+					// add bottom right triangle
+					this._triangles.push({
+						element: trId,
+						location: TriangleLocation.bottomRight,
+						points: [
+							bottomRight,
+							rightPoint,
+							center
+						],
+						height: (this._map[y][x + 1].height + this._map[y][x].height) / 2
+					});
+					trId++;
+
+					// add top right triangle
+					this._triangles.push({
+						element: trId,
+						location: TriangleLocation.topRight,
+						points: [
+							point,
+							center,
+							rightPoint
+						],
+						height: (this._map[y - 1][x].height + this._map[y][x].height) / 2
+					});
+					trId++;
+
+					let borders = '';
+					if (this._tileBorders) borders = 'stroke-width="1" stroke="#222a" '
+
+					// turn this into a createElement function to store the elements in an array
+					this._htmlMap += `<g class="tile" style="z-index:${this._map[y][x].id};">
+						<path fill="${topLeftTriangleColor}" ${borders}
+						d="M${top}
+						L${left}
+						L${center.x + bleed} ${center.y + bleed}
+						L${top} Z" />
+						<path fill="${bottomLeftTriangleColor}" ${borders}
+						d="M${left}
+						L${bottomLeft}
+						L${center.x + bleed} ${center.y - bleed}
+						L${left} Z" />
+						<path fill="${bottomRightTriangleColor}" ${borders}
+						d="M${center.x - bleed} ${center.y - bleed}
+						L${bottomRight}
+						L${right}
+						L${center.x - bleed} ${center.y - bleed} Z" />
+						<path fill="${topRightTriangleColor}" ${borders}
+						d="M${top}
+						L${center.x - bleed} ${center.y + bleed}
+						L${right}
+						L${top} Z" />
+						<text x="${this._map[y][x].tileCoords.point.x - 10}" y="${this._map[y][x].tileCoords.point.y - 15}">
+							${y}, ${x}
+						</text>
+						<text x="${this._map[y][x].tileCoords.point.x - 15}" y="${this._map[y][x].tileCoords.point.y - 5}">
+							height: ${this._map[y][x].height}
+						</text></g>`
+
+					trId++;
 				}
-
-				this._htmlMap += `<path fill="rgb(122, 132, 179)"
-					d="M${top}
-					L${left}
-					L${bottom}
-					L${right}
-					L${top} Z" />`
 			}
 		}
 
 		element.innerHTML = this._htmlMap;
+
+		console.log('triangles:', this._triangles);
 	}
 
 	private setContainerSize(size: Size2D = { width: 0, height: 0 }) {
@@ -308,6 +479,13 @@ interface MapInfo {
 		width: number,
 		height: number
 	}
+}
+
+enum TriangleLocation {
+	topLeft = 'TOP_LEFT',
+	bottomLeft = 'BOTTOM_LEFT',
+	bottomRight = 'BOTTOM_RIGHT',
+	topRight = 'TOP_RIGHT'
 }
 
 const map = new Island(26, 26);

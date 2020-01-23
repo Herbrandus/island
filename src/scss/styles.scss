@@ -19,3 +19,17 @@ body {
 #island {
 	margin: 50px 0 10px 0;
 }
+
+.tile:hover {
+	opacity: 0.7;
+}
+
+.tile > text {
+	display: none;
+}
+
+.tile:hover > text {
+	display: block;
+	font-size: 7px;
+	margin: 0 0 0 -10px;
+}
