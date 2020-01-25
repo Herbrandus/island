@@ -8,7 +8,7 @@ class Island {
 	// new Perlin(frequency?: number, lacunarity?: number, octaves?: number, persistence?: number, seed?: number, quality?: Quality)
 	private _re: RenderElements = new RenderElements();
 	private _config: Config = new Config();
-	private _perlin: Perlin = new Perlin(2, 3, 1);
+	private _perlin: Perlin;
 	private calculations: MapGenerationFunctions = new MapGenerationFunctions()
 	private dimensions = this.calculations.calculateStraightLinesFromIsometricSquare(this._config.tileWidth, this._config.tileLength)
 	private _width: number;
@@ -19,11 +19,20 @@ class Island {
 	private _triangles: object[] = [];
 	private _htmlMap: string = '';
 	private _edge: number = 4;
-	private _coloring: boolean = false;
+	private _coloring: boolean = true;
 	private _defaultColor: string = 'rgb(74, 150, 115)';
-	private _tileBorders: boolean = true;
+	private _tileBorders: boolean = false;
 
-	constructor(private w: number, private l: number) {
+	constructor(
+		private w: number, 
+		private l: number, 
+		private noiseScale: number = 25,
+		private frequency: number = 1, 
+		private lacunarity: number = 1.7, 
+		private octaves: number = 4, 
+		private persistence: number) {
+
+		this._perlin = new Perlin(frequency, lacunarity, octaves, persistence, new Date().getTime(), 100);
 
 		let id = 0;
 		this._width = w;
@@ -81,7 +90,7 @@ class Island {
 
 				if (islandSize < chance) {
 					// noise
-					const noiseVal = Math.abs(this._perlin.getValue(x / 25, y / 25, 0));
+					const noiseVal = Math.abs(this._perlin.getValue(x / noiseScale * frequency, y / noiseScale * frequency, 0));
 
 					elevation = Math.floor((chance) * (noiseVal * (chance / 300))); // 10 + (noiseVal*10);
 					if (elevation <= 0) {
@@ -351,6 +360,29 @@ class Island {
 						}
 					}
 
+					// calculate tilt of each triangle
+					const topLeftEdgeCenterPoint = {
+						x: (point.x + leftPoint.x) / 2,
+						y: (point.y + leftPoint.y) / 2
+					};
+
+					const bottomLeftEdgeCenterPoint = {
+						x: (leftPoint.x + bottomPoint.x) / 2,
+						y: (leftPoint.y + bottomPoint.y) / 2
+					};
+
+					const bottomRightEdgeCenterPoint = {
+						x: (bottomPoint.x + rightPoint.x) / 2,
+						y: (bottomPoint.y + rightPoint.y) / 2
+					};
+
+					const topRightEdgeCenterPoint = {
+						x: (point.x + rightPoint.x) / 2,
+						y: (point.y + rightPoint.y) / 2
+					};
+
+
+
 					// add top left triangle
 					this._triangles.push({
 						element: trId,
@@ -488,16 +520,23 @@ enum TriangleLocation {
 	topRight = 'TOP_RIGHT'
 }
 
-const map = new Island(26, 26);
-let mapInfo = map.getMapInfo();
+const scaleInput = <HTMLInputElement>document.querySelector('input#scale');
+const lacunarityInput = <HTMLInputElement>document.querySelector('input#lacunarity');
+const octavesInput = <HTMLInputElement>document.querySelector('input#octaves');
+const persistenceInput = <HTMLInputElement>document.querySelector('input#persistence');
+const generate = <HTMLInputElement>document.querySelector('#generate');
 const el = document.querySelector('#island');
 
-const width = mapInfo.width * mapInfo.tileWidth;
-const length = mapInfo.length * mapInfo.tileLength;
+generate.addEventListener('click', () => {
+	const map = new Island(40, 40, parseInt(scaleInput.value), 1, parseInt(lacunarityInput.value), parseInt(octavesInput.value), parseInt(persistenceInput.value));
+	let mapInfo = map.getMapInfo();
 
-map.buildMap(el);
-mapInfo = map.getMapInfo();
+	const width = mapInfo.width * mapInfo.tileWidth;
+	const length = mapInfo.length * mapInfo.tileLength;
 
-el.setAttribute('width', mapInfo.container.width.toString());
-el.setAttribute('height', mapInfo.container.height.toString());
+	map.buildMap(el);
+	mapInfo = map.getMapInfo();
 
+	el.setAttribute('width', mapInfo.container.width.toString());
+	el.setAttribute('height', mapInfo.container.height.toString());
+});
