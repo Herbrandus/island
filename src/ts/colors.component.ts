@@ -136,6 +136,10 @@ export class Color {
 	}
 
 	public changeColorLighting(amount: number): Color {
+
+		console.log('change color by', amount);
+		console.log('current', this._colorRgb);
+
 		let r = this._colorRgb.r
 		let b = this._colorRgb.b
 		let g = this._colorRgb.g

@@ -2,6 +2,7 @@ import { Perlin } from "libnoise-ts/module/generator";
 import { RenderElements } from './renderelements.component';
 import { MapGenerationFunctions } from './mapGenerationFunctions.component'
 import { Config, Position } from './config.component';
+import { Color } from './colors.component'
 
 class Island {
 	
@@ -21,6 +22,12 @@ class Island {
 	private _edge: number = 4;
 	private _coloring: boolean = true;
 	private _defaultColor: string = 'rgb(74, 150, 115)';
+	private _colors: ColorDefinition = {
+		water: new Color(61, 122, 213),
+		grass: new Color(89, 161, 42),
+		sand: new Color(245, 231, 60),
+		rock: new Color(85, 73, 63)
+	}
 	private _tileBorders: boolean = false;
 
 	constructor(
@@ -324,42 +331,6 @@ class Island {
 					// look top
 					const topIsElevated = this._map[y][x].height < this._map[y - 1][x].height ? true : false;
 
-					if (this._coloring) {
-
-						topLeftTriangleColor = `rgb(61, 122, 213)`;
-						bottomLeftTriangleColor = `rgb(61, 122, 213)`;
-						bottomRightTriangleColor = `rgb(61, 122, 213)`;
-						topRightTriangleColor = `rgb(61, 122, 213)`;
-
-						if (leftIsElevated || this._map[y][x].height > 0) {
-							topLeftTriangleColor = `rgb(89, 161, 42)`;
-							if (this._map[y][x].height === 0) {
-								topLeftTriangleColor = `rgb(245, 231, 60)`;
-							}
-						}
-
-						if (bottomIsElevated || this._map[y][x].height > 0) {
-							bottomLeftTriangleColor = `rgb(89, 161, 42)`;
-							if (this._map[y][x].height === 0) {
-								bottomLeftTriangleColor = `rgb(245, 231, 60)`;
-							}
-						}
-
-						if (rightIsElevated || this._map[y][x].height > 0) {
-							bottomRightTriangleColor = `rgb(89, 161, 42)`;
-							if (this._map[y][x].height === 0) {
-								bottomRightTriangleColor = `rgb(245, 231, 60)`;
-							}
-						}
-
-						if (topIsElevated || this._map[y][x].height > 0) {
-							topRightTriangleColor = `rgb(89, 161, 42)`;
-							if (this._map[y][x].height === 0) {
-								topRightTriangleColor = `rgb(245, 231, 60)`;
-							}
-						}
-					}
-
 					// calculate tilt of each triangle
 					const topLeftEdgeCenterPoint = {
 						x: (point.x + leftPoint.x) / 2,
@@ -381,7 +352,43 @@ class Island {
 						y: (point.y + rightPoint.y) / 2
 					};
 
+					// center to topLeft
+					// get height from this and height from left tile / 2
+					// height for topLeftCenterPoint is now known
+					// height for center point is 0
+					// tileLength from config / 2
+					// height base and base are both known now
+					// height base * base / 2 = long side
+					// to calculate angle = tan-1( hypotenuse / base length)
 
+					const topLeftAverageHeight = (this._map[y][x - 1].height + this._map[y][x].height) / 2;
+					const bottomLeftAverageHeight = (this._map[y + 1][x].height + this._map[y][x].height) / 2;
+					const bottomRightAverageHeight = (this._map[y][x + 1].height + this._map[y][x].height) / 2;
+					const topRightAverageHeight = (this._map[y - 1][x].height + this._map[y][x].height) / 2;
+
+					const topLeftAngle = Math.round(this.toDegrees( 
+						Math.atan(
+							Math.abs(topLeftAverageHeight - this._map[y][x].height) / (this._config.tileWidth / 2)
+						)
+					));
+
+					const bottomLeftAngle = Math.round(this.toDegrees(
+						Math.atan(
+							Math.abs(bottomLeftAverageHeight - this._map[y][x].height) / (this._config.tileLength / 2)
+						)
+					));
+
+					const bottomRightAngle = Math.round(this.toDegrees( 
+						Math.atan(
+							Math.abs(bottomRightAverageHeight - this._map[y][x].height) / (this._config.tileWidth / 2)
+						)
+					));
+
+					const topRightAngle = Math.round(this.toDegrees(
+						Math.atan(
+							Math.abs(topRightAverageHeight - this._map[y][x].height) / (this._config.tileLength / 2)
+						)
+					));
 
 					// add top left triangle
 					this._triangles.push({
@@ -392,7 +399,8 @@ class Island {
 							leftPoint,
 							center
 						],
-						height: (this._map[y][x - 1].height + this._map[y][x].height) / 2
+						height: (this._map[y][x - 1].height + this._map[y][x].height) / 2,
+						angle: topLeftAngle
 					});
 					trId++;
 
@@ -405,7 +413,8 @@ class Island {
 							bottomLeft,
 							center
 						],
-						height: (this._map[y + 1][x].height + this._map[y][x].height) / 2
+						height: (this._map[y + 1][x].height + this._map[y][x].height) / 2,
+						angle: bottomLeftAngle
 					});
 					trId++;
 
@@ -418,7 +427,8 @@ class Island {
 							rightPoint,
 							center
 						],
-						height: (this._map[y][x + 1].height + this._map[y][x].height) / 2
+						height: (this._map[y][x + 1].height + this._map[y][x].height) / 2,
+						angle: bottomRightAngle
 					});
 					trId++;
 
@@ -431,9 +441,49 @@ class Island {
 							center,
 							rightPoint
 						],
-						height: (this._map[y - 1][x].height + this._map[y][x].height) / 2
+						height: (this._map[y - 1][x].height + this._map[y][x].height) / 2,
+						angle: topRightAngle
 					});
 					trId++;
+
+					if (this._coloring) {
+
+						topLeftTriangleColor = this._colors.water.hex();
+						bottomLeftTriangleColor = this._colors.water.hex();
+						bottomRightTriangleColor = this._colors.water.hex();
+						topRightTriangleColor = this._colors.water.hex();
+
+						if (leftIsElevated || this._map[y][x].height > 0) {
+							const topLeftColor = this._colors.grass;
+							topLeftTriangleColor = new Color(this._colors.grass.hex()).changeColorLighting(-topLeftAngle).hex();
+							console.log('angle', topLeftAngle);
+							console.log('color', topLeftTriangleColor);
+							if (this._map[y][x].height === 0) {
+								topLeftTriangleColor = `rgb(245, 231, 60)`;
+							}
+						}
+
+						if (bottomIsElevated || this._map[y][x].height > 0) {
+							bottomLeftTriangleColor = new Color(this._colors.grass.hex()).changeColorLighting(-bottomLeftAngle).hex();
+							if (this._map[y][x].height === 0) {
+								bottomLeftTriangleColor = `rgb(245, 231, 60)`;
+							}
+						}
+
+						if (rightIsElevated || this._map[y][x].height > 0) {
+							bottomRightTriangleColor = new Color(this._colors.grass.hex()).changeColorLighting(bottomRightAngle).hex();
+							if (this._map[y][x].height === 0) {
+								bottomRightTriangleColor = `rgb(245, 231, 60)`;
+							}
+						}
+
+						if (topIsElevated || this._map[y][x].height > 0) {
+							topRightTriangleColor = new Color(this._colors.grass.hex()).changeColorLighting(topRightAngle).hex();
+							if (this._map[y][x].height === 0) {
+								topRightTriangleColor = `rgb(245, 231, 60)`;
+							}
+						}
+					}
 
 					let borders = '';
 					if (this._tileBorders) borders = 'stroke-width="1" stroke="#222a" '
@@ -485,6 +535,14 @@ class Island {
 			this._containerPixelHeight = size.height;
 		}
 	}
+
+	private toRadians (angle: number): number {
+		return angle * (Math.PI / 180);
+	}
+
+	private toDegrees (angle: number): number {
+		return angle * (180 / Math.PI);
+	}
 }
 
 interface MapTile {
@@ -511,6 +569,10 @@ interface MapInfo {
 		width: number,
 		height: number
 	}
+}
+
+interface ColorDefinition {
+	[index: string]: Color
 }
 
 enum TriangleLocation {
