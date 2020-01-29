@@ -1,8 +1,8 @@
 export class Config {
 
 	private _allowDebug: boolean = true
-	private _tileWidth: number = 15
-	private _tileLength: number = 15
+	private _tileWidth: number = 80
+	private _tileLength: number = 80
 	private _tileHeight: number = 10
 	private _tileSmallAngle: number = 85
 	private _tileLargeAngle: number = 100

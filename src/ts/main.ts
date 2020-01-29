@@ -366,6 +366,22 @@ class Island {
 					const bottomRightAverageHeight = (this._map[y][x + 1].height + this._map[y][x].height) / 2;
 					const topRightAverageHeight = (this._map[y - 1][x].height + this._map[y][x].height) / 2;
 
+					const topLeftHeightMeasure = (topLeftAverageHeight !== this._map[y][x].height) 
+						? (topLeftAverageHeight > this._map[y][x].height ? 1 : -1) 
+						: 0;
+
+					const bottomLeftHeightMeasure = (bottomLeftAverageHeight !== this._map[y][x].height) 
+						? (bottomLeftAverageHeight < this._map[y][x].height ? 1 : -1) 
+						: 0;
+
+					const bottomRightHeightMeasure = (bottomRightAverageHeight !== this._map[y][x].height) 
+						? (bottomRightAverageHeight > this._map[y][x].height ? 1 : -1) 
+						: 0;
+
+					const topRightHeightMeasure = (topRightAverageHeight !== this._map[y][x].height) 
+						? (topRightAverageHeight > this._map[y][x].height ? 1 : -1) 
+						: 0;
+
 					const topLeftAngle = Math.round(this.toDegrees( 
 						Math.atan(
 							Math.abs(topLeftAverageHeight - this._map[y][x].height) / (this._config.tileWidth / 2)
@@ -389,6 +405,11 @@ class Island {
 							Math.abs(topRightAverageHeight - this._map[y][x].height) / (this._config.tileLength / 2)
 						)
 					));
+
+					if (topLeftAngle !== 0) console.log('topLeftAngle', topLeftAngle);
+					if (bottomLeftAngle !== 0) console.log('bottomLeftAngle', bottomLeftAngle);
+					if (bottomRightAngle !== 0) console.log('bottomRightAngle', bottomRightAngle);
+					if (topRightAngle !== 0) console.log('topRightAngle', topRightAngle);
 
 					// add top left triangle
 					this._triangles.push({
@@ -453,36 +474,125 @@ class Island {
 						bottomRightTriangleColor = this._colors.water.hex();
 						topRightTriangleColor = this._colors.water.hex();
 
-						if (leftIsElevated || this._map[y][x].height > 0) {
-							const topLeftColor = this._colors.grass;
-							topLeftTriangleColor = new Color(this._colors.grass.hex()).changeColorLighting(-topLeftAngle).hex();
-							console.log('angle', topLeftAngle);
-							console.log('color', topLeftTriangleColor);
-							if (this._map[y][x].height === 0) {
-								topLeftTriangleColor = `rgb(245, 231, 60)`;
+						if (topLeftHeightMeasure !== 0) {
+							topLeftTriangleColor = this._colors.grass.hex();
+
+							if (topLeftHeightMeasure === 1) {
+								topLeftTriangleColor = new Color(this._colors.grass.hex()).changeColorLighting(topLeftAngle * 2).hex();
+							} else {
+								topLeftTriangleColor = new Color(this._colors.grass.hex()).changeColorLighting(-topLeftAngle * 2).hex();
 							}
 						}
 
-						if (bottomIsElevated || this._map[y][x].height > 0) {
-							bottomLeftTriangleColor = new Color(this._colors.grass.hex()).changeColorLighting(-bottomLeftAngle).hex();
-							if (this._map[y][x].height === 0) {
-								bottomLeftTriangleColor = `rgb(245, 231, 60)`;
-							}
+						if (bottomLeftHeightMeasure !== 0) {
+							bottomLeftTriangleColor = this._colors.grass.hex();
 						}
 
-						if (rightIsElevated || this._map[y][x].height > 0) {
-							bottomRightTriangleColor = new Color(this._colors.grass.hex()).changeColorLighting(bottomRightAngle).hex();
-							if (this._map[y][x].height === 0) {
-								bottomRightTriangleColor = `rgb(245, 231, 60)`;
-							}
+						if (bottomRightHeightMeasure !== 0) {
+							bottomRightTriangleColor = this._colors.grass.hex();
 						}
 
-						if (topIsElevated || this._map[y][x].height > 0) {
-							topRightTriangleColor = new Color(this._colors.grass.hex()).changeColorLighting(topRightAngle).hex();
-							if (this._map[y][x].height === 0) {
-								topRightTriangleColor = `rgb(245, 231, 60)`;
-							}
+						if (topRightHeightMeasure !== 0) {
+							topRightTriangleColor = this._colors.grass.hex();
 						}
+
+						if (this._map[y][x].height > 0) {
+
+							topLeftTriangleColor = this._colors.grass.hex();
+							bottomLeftTriangleColor = this._colors.grass.hex();
+							bottomRightTriangleColor = this._colors.grass.hex();
+							topRightTriangleColor = this._colors.grass.hex();
+
+							if (topLeftHeightMeasure === 1) {
+								topLeftTriangleColor = new Color(this._colors.grass.hex()).changeColorLighting(topLeftAngle * 2).hex();
+							} else {
+								topLeftTriangleColor = new Color(this._colors.grass.hex()).changeColorLighting(-topLeftAngle * 2).hex();
+							}
+
+							if (bottomLeftHeightMeasure === 1) {
+								bottomLeftTriangleColor = new Color(this._colors.grass.hex()).changeColorLighting(bottomLeftAngle * 2).hex();
+							} else {
+								bottomLeftTriangleColor = new Color(this._colors.grass.hex()).changeColorLighting(-bottomLeftAngle * 2).hex();
+							}
+
+							if (bottomRightHeightMeasure === 1) {
+								bottomRightTriangleColor = new Color(this._colors.grass.hex()).changeColorLighting(-bottomRightAngle * 2).hex();
+							} else {
+								bottomRightTriangleColor = new Color(this._colors.grass.hex()).changeColorLighting(bottomRightAngle * 2).hex();
+							}
+
+							// 1 => higher than center
+							// -1 => lower than center
+							// if (topLeftHeightMeasure !== 0) {
+							// 	if (topLeftHeightMeasure === 1) {
+							// 		topLeftTriangleColor = new Color(this._colors.grass.hex()).changeColorLighting(topLeftAngle * 2).hex();
+							// 	} else {
+							// 		topLeftTriangleColor = new Color(this._colors.grass.hex()).changeColorLighting(-topLeftAngle * 2).hex();
+							// 	}
+							// } else {
+							// 	topLeftTriangleColor = this._colors.grass.hex()
+							// }
+
+							// if (bottomLeftHeightMeasure !== 0) {
+							// 	if (bottomLeftHeightMeasure === 1) {
+							// 		bottomLeftTriangleColor = new Color(this._colors.grass.hex()).changeColorLighting(bottomLeftAngle * 2).hex();
+							// 	} else {
+							// 		bottomLeftTriangleColor = new Color(this._colors.grass.hex()).changeColorLighting(-bottomLeftAngle * 2).hex();
+							// 	}
+							// } else {
+							// 	bottomLeftTriangleColor = this._colors.grass.hex()
+							// }
+
+							// if (bottomRightHeightMeasure !== 0) {
+							// 	if (bottomRightHeightMeasure === 1) {
+							// 		bottomRightTriangleColor = new Color(this._colors.grass.hex()).changeColorLighting(-bottomRightAngle * 2).hex();
+							// 	} else {
+							// 		bottomRightTriangleColor = new Color(this._colors.grass.hex()).changeColorLighting(bottomRightAngle * 2).hex();
+							// 	}
+							// } else {
+							// 	bottomRightTriangleColor = this._colors.grass.hex()
+							// }
+
+							// if (topRightHeightMeasure !== 0) {
+							// 	if (topRightHeightMeasure === 1) {
+							// 		topRightTriangleColor = new Color(this._colors.grass.hex()).changeColorLighting(-topRightAngle * 2).hex();
+							// 	} else {
+							// 		topRightTriangleColor = new Color(this._colors.grass.hex()).changeColorLighting(topRightAngle * 2).hex();
+							// 	}
+							// } else {
+							// 	topRightTriangleColor = this._colors.grass.hex()
+							// }	
+
+						}
+
+						// if (leftIsElevated || this._map[y][x].height > 0) {
+						// 	const topLeftColor = this._colors.grass;
+						// 	topLeftTriangleColor = new Color(this._colors.grass.hex()).changeColorLighting(-topLeftAngle).hex();
+						// 	if (this._map[y][x].height === 0) {
+						// 		topLeftTriangleColor = `rgb(245, 231, 60)`;
+						// 	}
+						// }
+
+						// if (bottomIsElevated || this._map[y][x].height > 0) {
+						// 	bottomLeftTriangleColor = new Color(this._colors.grass.hex()).changeColorLighting(-bottomLeftAngle).hex();
+						// 	if (this._map[y][x].height === 0) {
+						// 		bottomLeftTriangleColor = `rgb(245, 231, 60)`;
+						// 	}
+						// }
+
+						// if (rightIsElevated || this._map[y][x].height > 0) {
+						// 	bottomRightTriangleColor = new Color(this._colors.grass.hex()).changeColorLighting(bottomRightAngle).hex();
+						// 	if (this._map[y][x].height === 0) {
+						// 		bottomRightTriangleColor = `rgb(245, 231, 60)`;
+						// 	}
+						// }
+
+						// if (topIsElevated || this._map[y][x].height > 0) {
+						// 	topRightTriangleColor = new Color(this._colors.grass.hex()).changeColorLighting(topRightAngle).hex();
+						// 	if (this._map[y][x].height === 0) {
+						// 		topRightTriangleColor = `rgb(245, 231, 60)`;
+						// 	}
+						// }
 					}
 
 					let borders = '';
@@ -510,6 +620,30 @@ class Island {
 						L${center.x - bleed} ${center.y + bleed}
 						L${right}
 						L${top} Z" />
+						<text class="def" x="${topLeftEdgeCenterPoint.x + 5}" y="${topLeftEdgeCenterPoint.y + 7}">
+							${topLeftAngle}
+						</text>
+						<text class="def" x="${bottomLeftEdgeCenterPoint.x + 3}" y="${bottomLeftEdgeCenterPoint.y - 7}">
+							${bottomLeftAngle}
+						</text>
+						<text class="def" x="${bottomRightEdgeCenterPoint.x - 7}" y="${bottomRightEdgeCenterPoint.y - 5}">
+							${bottomRightAngle}
+						</text>
+						<text class="def" x="${topRightEdgeCenterPoint.x - 7}" y="${topRightEdgeCenterPoint.y + 7}">
+							${topRightAngle}
+						</text> 
+						<text class="extra" x="${topLeftEdgeCenterPoint.x + 5}" y="${topLeftEdgeCenterPoint.y + 7}">
+							${topLeftHeightMeasure}
+						</text>
+						<text class="extra" x="${bottomLeftEdgeCenterPoint.x + 3}" y="${bottomLeftEdgeCenterPoint.y - 7}">
+							${bottomLeftHeightMeasure}
+						</text>
+						<text class="extra" x="${bottomRightEdgeCenterPoint.x - 7}" y="${bottomRightEdgeCenterPoint.y - 5}">
+							${bottomRightHeightMeasure}
+						</text>
+						<text class="extra" x="${topRightEdgeCenterPoint.x - 7}" y="${topRightEdgeCenterPoint.y + 7}">
+							${topRightHeightMeasure}
+						</text> 
 						<text x="${this._map[y][x].tileCoords.point.x - 10}" y="${this._map[y][x].tileCoords.point.y - 15}">
 							${y}, ${x}
 						</text>
@@ -590,7 +724,7 @@ const generate = <HTMLInputElement>document.querySelector('#generate');
 const el = document.querySelector('#island');
 
 generate.addEventListener('click', () => {
-	const map = new Island(40, 40, parseInt(scaleInput.value), 1, parseInt(lacunarityInput.value), parseInt(octavesInput.value), parseInt(persistenceInput.value));
+	const map = new Island(8, 8, parseInt(scaleInput.value), 1, parseInt(lacunarityInput.value), parseInt(octavesInput.value), parseInt(persistenceInput.value));
 	let mapInfo = map.getMapInfo();
 
 	const width = mapInfo.width * mapInfo.tileWidth;
@@ -602,3 +736,6 @@ generate.addEventListener('click', () => {
 	el.setAttribute('width', mapInfo.container.width.toString());
 	el.setAttribute('height', mapInfo.container.height.toString());
 });
+
+const event = new Event('click');
+generate.dispatchEvent(event);
